@@ -1,27 +1,24 @@
 package ru.kata.spring.boot_security.demo.mapper;
 
-import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import ru.kata.spring.boot_security.demo.dto.RoleDTO;
 import ru.kata.spring.boot_security.demo.models.Role;
-
-import java.util.Set;
+import ru.kata.spring.boot_security.demo.repositories.RoleRepository;
 
 @Component
 public class RoleMapper {
-    private final ModelMapper mapper;
+    private final RoleRepository roleRepository;
 
     @Autowired
-    public RoleMapper(ModelMapper mapper) {
-        this.mapper = mapper;
+    public RoleMapper(RoleRepository roleRepository) {
+        this.roleRepository = roleRepository;
     }
 
     public String convertToRoleDTO(Role role) {
-        return mapper.map(role.getRoleName(), String.class);
+        return role.getRoleName();
     }
 
-    public Role convertToRole(RoleDTO roleDTO) {
-        return mapper.map(roleDTO, Role.class);
+    public Role convertToRole(String roleDTO) {
+        return roleRepository.findByRoleName(roleDTO);
     }
 }

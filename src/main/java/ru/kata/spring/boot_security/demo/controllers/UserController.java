@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.RestController;
 import ru.kata.spring.boot_security.demo.dto.UserDTO;
 import ru.kata.spring.boot_security.demo.services.UserService;
 
+import java.security.Principal;
+
 @RestController
 @RequestMapping("/api/user")
 public class UserController {
@@ -18,8 +20,8 @@ public class UserController {
     }
 
     @GetMapping
-    public UserDTO showUserInfo() {
-        return userService.getCurrentUser();
+    public UserDTO showUserInfo(Principal principal) {
+        return userService.getUserByUsername(principal.getName());
     }
 
 }

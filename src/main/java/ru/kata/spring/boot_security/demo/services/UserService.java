@@ -4,12 +4,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import ru.kata.spring.boot_security.demo.dto.UserDTO;
+import ru.kata.spring.boot_security.demo.mapper.RoleMapper;
 import ru.kata.spring.boot_security.demo.mapper.UserMapper;
 import ru.kata.spring.boot_security.demo.models.Role;
 import ru.kata.spring.boot_security.demo.models.User;
@@ -30,6 +32,7 @@ public class UserService {
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
+    private final RoleMapper roleMapper;
     private final UserValidator validator;
 
     @Autowired
@@ -37,11 +40,13 @@ public class UserService {
                        RoleRepository roleRepository,
                        PasswordEncoder passwordEncoder,
                        UserMapper userMapper,
+                       RoleMapper roleMapper,
                        UserValidator validator) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
         this.userMapper = userMapper;
+        this.roleMapper = roleMapper;
         this.validator = validator;
     }
 
@@ -50,6 +55,16 @@ public class UserService {
                 .stream()
                 .map(userMapper::convertToUserDTO)
                 .collect(Collectors.toList());
+    }
+
+    public UserDTO getUserById(int id) {
+        return userMapper.convertToUserDTO(userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(String.format("User with ID %d not found", id))));
+    }
+
+    public UserDTO getUserByUsername(String email) {
+        return userMapper.convertToUserDTO(userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException(String.format("User with email %s not found", email))));
     }
 
     @Transactional
@@ -73,20 +88,19 @@ public class UserService {
     }
 
     @Transactional
-    public void update(UserDTO userDTO, BindingResult bindingResult) {
+    public void update(int id, UserDTO userDTO, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
             throw new UserNotUpdatedException(buildErrorMessageFromBindingResult(bindingResult));
         }
-        User user = userMapper.convertToUser(userDTO);
-        User existUser = userRepository.findById(user.getId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        if (user.getPassword() != null && !user.getPassword().isEmpty()) {
-            existUser.setPassword(passwordEncoder.encode(user.getPassword()));
+        User existUser = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(String.format("User with ID %d not found", id)));
+        if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
+            existUser.setPassword(passwordEncoder.encode(userDTO.getPassword()));
         }
-        existUser.setName(user.getName());
-        existUser.setAge(user.getAge());
-        existUser.setEmail(user.getEmail());
-        existUser.setRoles(user.getRoles());
+        existUser.setName(userDTO.getName());
+        existUser.setAge(userDTO.getAge());
+        existUser.setEmail(userDTO.getEmail());
+        existUser.setRoles(userDTO.getRoles().stream().map(roleMapper::convertToRole).collect(Collectors.toSet()));
         userRepository.save(existUser);
     }
 

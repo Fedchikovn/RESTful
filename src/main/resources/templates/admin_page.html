@@ -17,7 +17,6 @@
         <div class="row">
             <div class="col-12">
                 <nav class="navbar navbar-expand-md navbar-dark bg-dark">
-                    <!-- Navbar content -->
                     <div class="collapse navbar-collapse" id="user">
                         <ul class="navbar-nav mr-auto">
                             <a class="navbar-brand font-weight-bold" id="headerUsername"></a>
@@ -44,6 +43,9 @@
             <ul class="nav nav-pills flex-column">
                 <li class="nav-item">
                     <a class="nav-link active" data-toggle="tab" href="#userPanel">User</a>
+                </li>
+                <li class="nav-item" id="newUserTabNav" style="display: none;"> <!-- Вкладка New User -->
+                    <a class="nav-link" data-toggle="tab" href="#newUserTab">New User</a>
                 </li>
             </ul>
         </div>
@@ -76,6 +78,43 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Панель для добавления нового пользователя -->
+                <div class="tab-pane fade" id="newUserTab">
+                    <h2>Create New User</h2>
+                    <div class="card">
+                        <h5 class="card-header">New User Form</h5>
+                        <div class="card-body">
+                            <form id="newUserForm">
+                                <!-- Поля для добавления нового пользователя -->
+                                <div class="mb-3">
+                                    <label for="newUserName" class="form-label">Name</label>
+                                    <input type="text" class="form-control" id="newUserName" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="newUserEmail" class="form-label">Email</label>
+                                    <input type="email" class="form-control" id="newUserEmail" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="newUserAge" class="form-label">Age</label>
+                                    <input type="number" class="form-control" id="newUserAge" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="newUserRoles" class="form-label">Role</label>
+                                    <select class="form-select" id="newUserRoles" required>
+                                        <!-- Список ролей будет подставляться динамически -->
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label for="newUserPassword" class="form-label">Password</label>
+                                    <input type="password" class="form-control" id="newUserPassword" required>
+                                </div>
+                                <button type="button" class="btn btn-primary" onclick="addUser()">Create User</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
     </div>
@@ -95,57 +134,39 @@
                 <form id="editUserForm">
                     <!-- Поля для редактирования -->
                     <div class="mb-3">
-                        <label for="userName" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="userName" required>
+                        <label for="editUserName" class="form-label">Name</label>
+                        <input type="text" class="form-control" id="editUserName" required>
                     </div>
                     <div class="mb-3">
-                        <label for="userEmail" class="form-label">Email</label>
-                        <input type="email" class="form-control" id="userEmail" required>
+                        <label for="editUserEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="editUserEmail" required>
                     </div>
                     <div class="mb-3">
-                        <label for="userAge" class="form-label">Age</label>
-                        <input type="number" class="form-control" id="userAge" required>
+                        <label for="editUserAge" class="form-label">Age</label>
+                        <input type="number" class="form-control" id="editUserAge" required>
                     </div>
                     <div class="mb-3">
-                        <label for="userRole" class="form-label">Role</label>
-                        <select class="form-select" id="userRole" required>
+                        <label for="editUserRoles" class="form-label">Role</label>
+                        <select class="form-select" id="editUserRoles" required>
                             <!-- Список ролей будет подставляться динамически -->
                         </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editUserPassword" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="editUserPassword" placeholder="Enter new password">
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary" onclick="submitEditUser()">Save changes</button>
+                <button type="button" class="btn btn-primary" onclick="editUser()">Save changes</button>
             </div>
         </div>
     </div>
 </div>
 
-
-<!-- Модальное окно подтверждения удаления -->
-<div class="modal" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="deleteUserModalLabel">Delete User</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <p>Are you sure you want to delete this user?</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger" id="confirmDeleteButton">Delete</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Отдельные JS для Popper и Bootstrap -->
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"
-        integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
-        crossorigin="anonymous"></script>
+<!-- JS для Popper и Bootstrap -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
         integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
         crossorigin="anonymous"></script>

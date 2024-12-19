@@ -8,6 +8,7 @@ import ru.kata.spring.boot_security.demo.models.Role;
 import ru.kata.spring.boot_security.demo.repositories.RoleRepository;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -22,9 +23,8 @@ public class RoleService {
         this.roleMapper = roleMapper;
     }
 
-    public Set<RoleDTO> getAllRoles() {
+    public List<String> getAllRoles() {
         Set<Role> roles = new HashSet<>(roleRepository.findAll());
-//        return roles.stream().map(roleMapper::convertToRoleDTO).collect(Collectors.toSet());
-        return null;
+        return roles.stream().map(roleMapper::convertToRoleDTO).collect(Collectors.toList());
     }
 }

@@ -1,88 +1,126 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     loadUsers();
     loadCurrentUser();
+    addUser();
+    populateRolesDropdown('newUserRoles'); // Заполнение ролей для добавления
+    populateRolesDropdown('editUserRoles'); // Заполнение ролей для редактирования
 });
-async function thisUser() {
+
+// Загрузка всех пользователей
+async function loadUsers() {
     try {
-        const response = await fetch("http://localhost:8080/api/admin");
-        const data = await response.json();
+        const response = await fetch('/api/admin');
+        const users = await response.json();
 
-        // Заполняем шапку страницы для текущего пользователя
-        const currentUser = data.currentUser;
-        $('#headerUsername').text(currentUser.name);
+        const userTableBody = document.getElementById('userPanelBody');
+        userTableBody.innerHTML = ''; // Очищаем таблицу
 
-        // Обрабатываем роли текущего пользователя
-        let roles = currentUser.roles.map(role => role.roleName ? role.roleName : "Unknown");
-        $('#headerRoles').text(roles.join(', '));
-
-        // Формируем таблицу с пользователями
-        const users = data.users;
-        const userTableBody = $('#userPanelBody');
-        userTableBody.empty();  // Очищаем таблицу перед добавлением новых данных
-
-        // Проходим по каждому пользователю и добавляем его в таблицу
         users.forEach(user => {
-            let userRoles = user.roles.map(role => role.roleName ? role.roleName : "Unknown");
-            let userRow = `
+            const userRoles = user.roles.join(', ');
+            const userRow = `
                 <tr>
                     <td>${user.name}</td>
                     <td>${user.email}</td>
                     <td>${user.age}</td>
-                    <td>${userRoles.join(', ')}</td>
+                    <td>${userRoles}</td>
                     <td><button class="btn btn-sm btn-primary" onclick="prepareEdit(${user.id})" data-bs-toggle="modal" data-bs-target="#editUserModal">Edit</button></td>
                     <td><button class="btn btn-sm btn-danger" onclick="confirmDeleteUser(${user.id})">Delete</button></td>
                 </tr>`;
-            userTableBody.append(userRow);
+            userTableBody.insertAdjacentHTML('beforeend', userRow);
         });
     } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error('Error loading users:', error);
     }
 }
 
-$(async function() {
-    await thisUser();
-});
-
-async function addUser() {
-    const newUser = {
-        name: $('#newUserName').val(),
-        email: $('#newUserEmail').val(),
-        age: $('#newUserAge').val(),
-        roles: [] // Здесь вы можете добавить роли, если они есть
-    };
-
+// Загрузка всех ролей
+async function fetchRoles() {
     try {
-        const response = await fetch("http://localhost:8080/api/admin/add-user", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(newUser)
-        });
-
+        const response = await fetch("http://localhost:8080/api/admin/roles");
         if (response.ok) {
-            alert("User added successfully");
-            thisUser(); // Перезагружаем таблицу после добавления
+            return await response.json(); // Получаем массив ролей
         } else {
-            alert("Error adding user");
+            console.error("Failed to fetch roles");
+            return [];
         }
     } catch (error) {
-        console.error("Error adding user:", error);
+        console.error("Error fetching roles:", error);
+        return [];
     }
 }
 
-async function editUser(id) {
-    // Получаем данные из формы редактирования (или можете получать их из таблицы)
+// Заполнение выпадающего списка ролей
+async function populateRolesDropdown(elementId) {
+    const roles = await fetchRoles();
+    const dropdown = document.getElementById(elementId);
+
+    if (dropdown) {
+        dropdown.innerHTML = ''; // Очищаем старые значения
+        roles.forEach(role => {
+            const option = document.createElement('option');
+            option.value = role; // Подставляем название роли
+            option.textContent = role; // Отображаем название роли
+            dropdown.appendChild(option);
+        });
+    } else {
+        console.error(`Element with id ${elementId} not found`);
+    }
+}
+
+// Подготовка данных для редактирования
+let editUserId = null; // Переменная для хранения ID редактируемого пользователя
+
+async function prepareEdit(userId) {
+    editUserId = userId; // Устанавливаем ID редактируемого пользователя
+
+    try {
+        const response = await fetch(`/api/admin/${userId}`);
+        const user = await response.json();
+
+        if (user) {
+            document.getElementById('editUserName').value = user.name || '';
+            document.getElementById('editUserEmail').value = user.email || '';
+            document.getElementById('editUserAge').value = user.age || '';
+            document.getElementById('editUserPassword').value = ''; // Оставляем пароль пустым
+            document.getElementById('editUserRoles').innerHTML = ''; // Очистим текущие роли
+
+            // Заполняем выпадающий список ролями
+            await populateRolesDropdown('editUserRoles');
+
+            // Выделяем текущие роли пользователя в списке
+            const roleOptions = document.getElementById('editUserRoles').options;
+            for (let i = 0; i < roleOptions.length; i++) {
+                if (user.roles && user.roles.includes(roleOptions[i].value)) {
+                    roleOptions[i].selected = true;
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Error preparing user edit:', error);
+    }
+}
+
+// Редактирование пользователя
+async function editUser() {
+    if (!editUserId) {  // Проверяем, есть ли id редактируемого пользователя
+        alert("User ID is not set for editing");
+        return;
+    }
+
+    const selectedRoles = Array.from(document.getElementById('editUserRoles').selectedOptions)
+        .map(option => option.value);
+
     const updatedUser = {
-        id: id,
+        id: editUserId,  // Используем editUserId
         name: $('#editUserName').val(),
         email: $('#editUserEmail').val(),
         age: $('#editUserAge').val(),
-        roles: [] // Здесь нужно добавить роли, если редактируете их
+        password: $('#editUserPassword').val() || null, // Если поле пустое, передаем null
+        roles: selectedRoles
     };
 
     try {
-        const response = await fetch("http://localhost:8080/api/admin/edit_user", {
+        const response = await fetch(`http://localhost:8080/api/admin/${editUserId}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json'
@@ -92,7 +130,13 @@ async function editUser(id) {
 
         if (response.ok) {
             alert("User updated successfully");
-            thisUser(); // Перезагружаем таблицу после редактирования
+            loadUsers(); // Перезагружаем таблицу
+
+            // Закрытие модального окна после успешного обновления
+            const editUserModal = bootstrap.Modal.getInstance(document.getElementById('editUserModal')); // Получаем существующий экземпляр
+            console.log('Trying to hide modal');
+            editUserModal.hide();  // Попытка скрыть окно
+            console.log('Modal should be hidden now');
         } else {
             alert("Error updating user");
         }
@@ -101,61 +145,75 @@ async function editUser(id) {
     }
 }
 
-async function deleteUser(id) {
+// Загрузка текущего пользователя
+async function loadCurrentUser() {
     try {
-        const response = await fetch(`http://localhost:8080/api/admin/delete-user?id=${id}`, {
+        const response = await fetch('/api/admin/current');
+        const user = await response.json();
+
+        document.getElementById('headerUsername').textContent = user.name;
+        document.getElementById('headerRoles').textContent = user.roles.join(', ');
+    } catch (error) {
+        console.error('Error loading current user:', error);
+    }
+}
+
+async function addUser() {
+    const user = {
+        name: document.getElementById('addUserName').value,
+        email: document.getElementById('addUserEmail').value,
+        age: document.getElementById('addUserAge').value,
+        roles: Array.from(document.getElementById('addUserRoles').selectedOptions).map(option => option.value),
+        password: document.getElementById('addUserPassword').value
+    };
+
+    try {
+        const response = await fetch('/api/admin', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(user)
+        });
+
+        if (response.ok) {
+            alert("User added successfully");
+            loadUsers(); // Обновляем таблицу
+
+            // Закрываем модальное окно
+            const addUserModal = bootstrap.Modal.getInstance(document.getElementById('addUserModal'));
+            if (addUserModal) {
+                addUserModal.hide();
+            }
+        } else {
+            alert("Error adding user");
+        }
+    } catch (error) {
+        console.error('Error adding user:', error);
+    }
+}
+
+// Удаление пользователя
+async function deleteUser(userId) {
+    try {
+        const response = await fetch(`/api/admin/${userId}`, {
             method: 'DELETE'
         });
 
         if (response.ok) {
-            alert("User deleted successfully");
-            thisUser(); // Перезагружаем таблицу после удаления
+            alert('User deleted successfully');
+            loadUsers();
         } else {
-            alert("Error deleting user");
+            alert('Error deleting user');
         }
     } catch (error) {
-        console.error("Error deleting user:", error);
+        console.error('Error deleting user:', error);
     }
 }
 
-// Подготовка данных для редактирования
-async function prepareEdit(userId) {
-    try {
-        const response = await fetch(`http://localhost:8080/api/admin/get-user?id=${userId}`);
-
-        if (!response.ok) {
-            const errorMessage = await response.text(); // Получаем текст ошибки
-            console.error(`Error: ${response.status} ${response.statusText}`);
-            console.error(errorMessage); // Выводим подробности ошибки
-            alert("Error fetching user data");
-            return;
-        }
-
-        const user = await response.json();
-
-        // Заполним форму редактирования данными пользователя
-        $('#editUserName').val(user.name);
-        $('#editUserEmail').val(user.email);
-        $('#editUserAge').val(user.age);
-
-        // Заполнение ролей, если это необходимо
-        const rolesSelect = $('#editUserRoles');
-        rolesSelect.empty(); // Очистим список ролей перед добавлением новых
-        user.roles.forEach(role => {
-            rolesSelect.append(new Option(role.roleName, role.id)); // Используем ID роли для передачи
-        });
-
-    } catch (error) {
-        console.error("Error fetching user data:", error);
-    }
-}
-
-
-
-// Подтверждение удаления пользователя
+// Подтверждение удаления
 function confirmDeleteUser(userId) {
-    const confirmed = confirm("Вы уверены, что хотите удалить этого пользователя?");
-    if (confirmed) {
+    if (confirm('Are you sure you want to delete this user?')) {
         deleteUser(userId);
     }
 }
